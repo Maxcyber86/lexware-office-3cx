@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Crm xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Country="DE" Name="Lexware Office" Version="3" SupportsEmojis="false" SupportsTranscription="false" ListPageSize="0">
+  <Number Prefix="Plus" MaxLength="20" />
+  <Connection MaxConcurrentRequests="2" />
+  <Parameters>
+    <Parameter Name="AdapterUrl" Type="String" Parent="General Configuration" Editor="String" Title="Adapter URL:" Validation="" Default="" ListValues="" RequestUrl="" RequestUrlParameters="" ResponseScenario="" />
+    <Parameter Name="Token" Type="Password" Parent="General Configuration" Editor="String" Title="Token:" Validation="" Default="" ListValues="" RequestUrl="" RequestUrlParameters="" ResponseScenario="" />
+  </Parameters>
+  <Authentication Type="No" />
+  <Scenarios>
+    <Scenario Id="" Type="REST" EntityId="Contacts" EntityOrder="">
+      <Request SkipIf="" Url="[AdapterUrl]/lookup?number=[Number]&amp;token=[Token]" MessagePasses="0" Message="" RequestContentType="" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Any" Ethalon="">contacts.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="ContactID" LookupValue="" Path="">contacts.entityId<Filter /></Variable>
+        <Variable Name="CtUrl" LookupValue="" Path="">contacts.contactUrl<Filter /></Variable>
+        <Variable Name="DisplayName" LookupValue="" Path="">contacts.displayName<Filter /></Variable>
+        <Variable Name="CompanyName" LookupValue="" Path="">contacts.company<Filter /></Variable>
+        <Variable Name="Email" LookupValue="" Path="">contacts.email<Filter /></Variable>
+        <Variable Name="PhoneMobile" LookupValue="" Path="">contacts.mobile<Filter /></Variable>
+        <Variable Name="PhoneBusiness" LookupValue="" Path="">contacts.business<Filter /></Variable>
+        <Variable Name="PhoneHome" LookupValue="" Path="">contacts.home<Filter /></Variable>
+        <Variable Name="PhoneOther" LookupValue="" Path="">contacts.other<Filter /></Variable>
+      </Variables>
+      <Outputs AllowEmpty="false">
+        <Output Type="ContactUrl" Passes="0" Value="[CtUrl]" />
+        <Output Type="EntityId" Passes="0" Value="[ContactID]" />
+        <Output Type="EntityType" Passes="0" Value="Contacts" />
+        <Output Type="FirstName" Passes="0" Value="[DisplayName]" />
+        <Output Type="CompanyName" Passes="0" Value="[CompanyName]" />
+        <Output Type="Email" Passes="0" Value="[Email]" />
+        <Output Type="PhoneMobile" Passes="0" Value="[PhoneMobile]" />
+        <Output Type="PhoneBusiness" Passes="0" Value="[PhoneBusiness]" />
+        <Output Type="PhoneHome" Passes="0" Value="[PhoneHome]" />
+        <Output Type="PhoneOther" Passes="0" Value="[PhoneOther]" />
+      </Outputs>
+    </Scenario>
+    <Scenario Id="LookupByEmail" Type="REST" EntityId="Contacts" EntityOrder="">
+      <Request SkipIf="" Url="[AdapterUrl]/lookupByEmail?email=[Email]&amp;token=[Token]" MessagePasses="0" Message="" RequestContentType="" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Any" Ethalon="">contacts.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="ContactID" LookupValue="" Path="">contacts.entityId<Filter /></Variable>
+        <Variable Name="CtUrl" LookupValue="" Path="">contacts.contactUrl<Filter /></Variable>
+        <Variable Name="DisplayName" LookupValue="" Path="">contacts.displayName<Filter /></Variable>
+        <Variable Name="CompanyName" LookupValue="" Path="">contacts.company<Filter /></Variable>
+        <Variable Name="Email" LookupValue="" Path="">contacts.email<Filter /></Variable>
+        <Variable Name="PhoneMobile" LookupValue="" Path="">contacts.mobile<Filter /></Variable>
+        <Variable Name="PhoneBusiness" LookupValue="" Path="">contacts.business<Filter /></Variable>
+        <Variable Name="PhoneHome" LookupValue="" Path="">contacts.home<Filter /></Variable>
+        <Variable Name="PhoneOther" LookupValue="" Path="">contacts.other<Filter /></Variable>
+      </Variables>
+      <Outputs AllowEmpty="false">
+        <Output Type="ContactUrl" Passes="0" Value="[CtUrl]" />
+        <Output Type="EntityId" Passes="0" Value="[ContactID]" />
+        <Output Type="EntityType" Passes="0" Value="Contacts" />
+        <Output Type="FirstName" Passes="0" Value="[DisplayName]" />
+        <Output Type="CompanyName" Passes="0" Value="[CompanyName]" />
+        <Output Type="Email" Passes="0" Value="[Email]" />
+        <Output Type="PhoneMobile" Passes="0" Value="[PhoneMobile]" />
+        <Output Type="PhoneBusiness" Passes="0" Value="[PhoneBusiness]" />
+        <Output Type="PhoneHome" Passes="0" Value="[PhoneHome]" />
+        <Output Type="PhoneOther" Passes="0" Value="[PhoneOther]" />
+      </Outputs>
+    </Scenario>
+    <Scenario Id="SearchContacts" Type="REST" EntityId="" EntityOrder="">
+      <Request SkipIf="" Url="[AdapterUrl]/search?q=[SearchText]&amp;token=[Token]" MessagePasses="0" Message="" RequestContentType="" RequestEncoding="UrlEncoded" RequestType="Get" ResponseType="Json" />
+      <Rules>
+        <Rule Type="Any" Ethalon="">contacts.id</Rule>
+      </Rules>
+      <Variables>
+        <Variable Name="ContactID" LookupValue="" Path="">contacts.entityId<Filter /></Variable>
+        <Variable Name="CtUrl" LookupValue="" Path="">contacts.contactUrl<Filter /></Variable>
+        <Variable Name="DisplayName" LookupValue="" Path="">contacts.displayName<Filter /></Variable>
+        <Variable Name="CompanyName" LookupValue="" Path="">contacts.company<Filter /></Variable>
+        <Variable Name="Email" LookupValue="" Path="">contacts.email<Filter /></Variable>
+        <Variable Name="PhoneMobile" LookupValue="" Path="">contacts.mobile<Filter /></Variable>
+        <Variable Name="PhoneBusiness" LookupValue="" Path="">contacts.business<Filter /></Variable>
+        <Variable Name="PhoneHome" LookupValue="" Path="">contacts.home<Filter /></Variable>
+        <Variable Name="PhoneOther" LookupValue="" Path="">contacts.other<Filter /></Variable>
+      </Variables>
+      <Outputs AllowEmpty="false">
+        <Output Type="ContactUrl" Passes="0" Value="[CtUrl]" />
+        <Output Type="EntityId" Passes="0" Value="[ContactID]" />
+        <Output Type="EntityType" Passes="0" Value="Contacts" />
+        <Output Type="FirstName" Passes="0" Value="[DisplayName]" />
+        <Output Type="CompanyName" Passes="0" Value="[CompanyName]" />
+        <Output Type="Email" Passes="0" Value="[Email]" />
+        <Output Type="PhoneMobile" Passes="0" Value="[PhoneMobile]" />
+        <Output Type="PhoneBusiness" Passes="0" Value="[PhoneBusiness]" />
+        <Output Type="PhoneHome" Passes="0" Value="[PhoneHome]" />
+        <Output Type="PhoneOther" Passes="0" Value="[PhoneOther]" />
+      </Outputs>
+    </Scenario>
+  </Scenarios>
+</Crm>
