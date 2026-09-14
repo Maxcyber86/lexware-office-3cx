@@ -1,0 +1,79 @@
+# Lexware Office -> 3CX Adapter — Docker Compose
+#
+# Uses the official php:8.3-cli-alpine image (no custom build). The adapter
+# script is mounted from ./ and the cache lives in ./data.
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  CONFIGURATION — edit the values in this block, then `docker compose up` │
+# │  KONFIGURATION — Werte in diesem Block anpassen, dann `docker compose up`│
+# └─────────────────────────────────────────────────────────────────────────┘
+x-config: &config
+  # REQUIRED / ERFORDERLICH ---------------------------------------------------
+  # Your Lexware Office public API key (app.lexware.de -> Settings -> Public API)
+  # Dein Lexware-Office-API-Key (app.lexware.de -> Einstellungen -> Öffentliche API)
+  LEXWARE_API_KEY: "REPLACE_ME_lexware_api_key"
+
+  # Shared secret between adapter and 3CX template. Generate with:
+  # Gemeinsames Geheimnis zwischen Adapter und 3CX-Template. Erzeugen mit:
+  #   openssl rand -hex 24
+  ADAPTER_TOKEN: "REPLACE_ME_shared_token"
+
+  # OPTIONAL ------------------------------------------------------------------
+  # Country code used to normalize national numbers to E.164.
+  # Ländervorwahl zur Normalisierung nationaler Nummern auf E.164.
+  COUNTRY_CODE: "+49"
+
+  # Import only customers (true) or all contacts incl. vendors (false).
+  # Nur Kunden (true) oder alle Kontakte inkl. Lieferanten (false).
+  LEXWARE_ONLY_CUSTOMERS: "false"
+
+  # How often the refresh container rebuilds the index (seconds).
+  # Intervall, in dem der Refresh-Container den Index neu baut (Sekunden).
+  REFRESH_INTERVAL_SECONDS: "600"
+
+  # Reject lookups once the cache is older than this (seconds; 0 = no limit).
+  # Nachschlagen ablehnen, sobald der Cache älter ist (Sekunden; 0 = ohne Limit).
+  ADAPTER_MAX_CACHE_AGE: "3600"
+
+  # Rarely changed. api.lexware.io is current (api.lexoffice.io was retired).
+  # Selten zu ändern. api.lexware.io ist aktuell (api.lexoffice.io abgeschaltet).
+  LEXWARE_BASE_URL: "https://api.lexware.io"
+  LEXWARE_APP_BASE_URL: "https://app.lexware.de"
+  LEXWARE_PAGE_SIZE: "250"
+  LEXWARE_PAGE_DELAY_MS: "600"
+
+  ADAPTER_CACHE_FILE: "/data/cache.json"
+  TZ: "Europe/Berlin"
+# ───────────────────────────── end configuration ──────────────────────────
+
+services:
+
+  # HTTP service that 3CX queries (through your reverse proxy). Reads only the
+  # cache; needs no outbound internet access.
+  adapter:
+    image: php:8.3-cli-alpine
+    container_name: lexware-3cx-adapter
+    restart: unless-stopped
+    working_dir: /app
+    environment: *config
+    command: php -S 0.0.0.0:8710 /app/lexware-3cx-adapter.php
+    volumes:
+      - ./lexware-3cx-adapter.php:/app/lexware-3cx-adapter.php:ro
+      - ./data:/data:ro
+    # Expose to your reverse proxy. Either publish a host port (below) or put
+    # this service on your proxy's Docker network. See the README.
+    ports:
+      - "127.0.0.1:8710:8710"
+
+  # Rebuilds the index from Lexware on a loop. Needs outbound internet.
+  refresh:
+    image: php:8.3-cli-alpine
+    container_name: lexware-3cx-refresh
+    restart: unless-stopped
+    working_dir: /app
+    environment: *config
+    # $$ prevents Compose interpolation; the shell resolves it in the container.
+    command: sh -c 'while true; do php /app/lexware-3cx-adapter.php refresh || true; sleep "$$REFRESH_INTERVAL_SECONDS"; done'
+    volumes:
+      - ./lexware-3cx-adapter.php:/app/lexware-3cx-adapter.php:ro
+      - ./data:/data
