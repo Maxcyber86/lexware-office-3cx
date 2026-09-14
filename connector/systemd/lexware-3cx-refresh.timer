@@ -1,0 +1,11 @@
+[Unit]
+Description=Trigger the Lexware-to-3CX index refresh periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+Persistent=true
+Unit=lexware-3cx-refresh.service
+
+[Install]
+WantedBy=timers.target

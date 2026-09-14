@@ -1,0 +1,18 @@
+[Unit]
+Description=Lexware Office to 3CX - rebuild the index from Lexware
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lexadapter
+Group=lexadapter
+WorkingDirectory=/opt/lexware-3cx
+ExecStart=/usr/bin/php /opt/lexware-3cx/lexware-3cx-adapter.php refresh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/lexware-3cx
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true

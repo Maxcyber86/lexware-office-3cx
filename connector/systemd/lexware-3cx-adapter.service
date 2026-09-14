@@ -1,0 +1,24 @@
+[Unit]
+Description=Lexware Office to 3CX - Adapter (HTTP service)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lexadapter
+Group=lexadapter
+WorkingDirectory=/opt/lexware-3cx
+# Binds to localhost; TLS/reachability is handled by a reverse proxy.
+ExecStart=/usr/bin/php -S 127.0.0.1:8710 /opt/lexware-3cx/lexware-3cx-adapter.php
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/lexware-3cx
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
