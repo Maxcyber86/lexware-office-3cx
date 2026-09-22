@@ -55,7 +55,7 @@ email, and answers 3CX's lookups in milliseconds.
 ## 🚀 Quick start (Docker)
 
 ```bash
-git clone https://github.com/YOUR-USER/lexware-office-3cx.git
+git clone https://github.com/Maxcyber86/lexware-office-3cx.git
 cd lexware-office-3cx/connector
 
 # 1. Open docker-compose.yml and set, at the top of the file:
@@ -230,7 +230,7 @@ in Millisekunden.
 ## 🚀 Schnellstart (Docker)
 
 ```bash
-git clone https://github.com/YOUR-USER/lexware-office-3cx.git
+git clone https://github.com/Maxcyber86/lexware-office-3cx.git
 cd lexware-office-3cx/connector
 
 # 1. docker-compose.yml öffnen und oben eintragen:
