@@ -14,7 +14,9 @@ company of incoming callers — resolved live from your Lexware Office contacts.
 ## What it does
 
 - Resolves incoming callers to **name and company** from your Lexware Office
-  contacts — on 3CX desk phones, the apps and the web client.
+  contacts — in the 3CX web client, the apps and missed-call emails. Desk phones
+  show the name once the contact is in the 3CX phonebook (see
+  [Desk phones](#desk-phones)).
 - Adds **contact search** in the 3CX web client ("add contact from CRM").
 - **Screen pop**: opens the contact in Lexware Office with one click.
 - Picks up changes and deletions in Lexware automatically (index refresh on a
@@ -115,10 +117,16 @@ Set via `environment:` in `docker-compose.yml` (Docker) or in `config.php`
 - The company name is deliberately part of the **display name**, so it appears on
   desk phones and in missed-call emails — 3CX shows only the name there, not a
   separate company field.
-- Phone numbers are normalized to **E.164**; a last-8-digits fallback catches
-  formatting differences (only on an unambiguous match).
-- Invisible bidi/zero-width control characters that Lexware sometimes adds around
-  numbers are stripped from the display.
+- Phone numbers are normalized to **E.164** for matching; a last-8-digits
+  fallback catches formatting differences. If several records share those
+  digits, the fallback only resolves when they all carry the same full number.
+- 3CX inserts the caller number into the lookup URL without encoding, so a
+  leading `+` arrives as a space. The connector restores it before matching.
+- Numbers returned to 3CX are cleaned and uniform: domestic numbers in national
+  format without spaces (`01515550100`, the format German trunks deliver),
+  foreign numbers in E.164 (`+41791234567`). No-break spaces and invisible
+  bidi/zero-width characters that Lexware sometimes adds are removed — with
+  them, 3CX does not add the contact to its phonebook.
 
 ## Bare-metal (without Docker)
 
@@ -146,11 +154,22 @@ php lexware-3cx-adapter.php selftest
 - Always put **TLS** in front of it. Optionally restrict access to 3CX's IP
   ranges at your reverse proxy.
 
+## Desk phones
+
+3CX sends the caller name to desk phones (e.g. Yealink) only for numbers found
+in its **own phonebook** at the time the call is routed. The live CRM result
+appears in the web client, the apps and missed-call emails, but not on the
+desk phone. To show names on desk phones as well:
+
+- set the integration's contact lookup to **always query**, and
+- enable **"add CRM contacts to the company phonebook"**.
+
+Trade-offs: the name appears on the desk phone from the **second call** of a
+number onwards, and the phonebook entries are static copies — later changes in
+Lexware are not carried over to them.
+
 ## Notes & limitations
 
-- Leave the 3CX option **"add CRM contacts to the company phonebook" OFF** —
-  live resolution already shows name and company on every call, and that option
-  creates static copies that go stale.
 - The German mobile-slot heuristic (`15x/16x/17x` → mobile) and the `+49`
   default are for Germany; set `COUNTRY_CODE` for other regions.
 - **Not included:** call journaling — Lexware Office is accounting software with
@@ -169,7 +188,9 @@ Not affiliated with or endorsed by Lexware / Haufe-Lexware or 3CX.
 ## Was es macht
 
 - Löst eingehende Anrufer zu **Name und Firma** aus deinen Lexware-Office-
-  Kontakten auf — auf 3CX-Tischtelefonen, in den Apps und im Web Client.
+  Kontakten auf — im 3CX Web Client, in den Apps und in Verpasst-Anruf-Mails.
+  Tischtelefone zeigen den Namen, sobald der Kontakt im 3CX-Telefonbuch steht
+  (siehe [Tischtelefone](#tischtelefone)).
 - Ergänzt eine **Kontaktsuche** im 3CX-Web-Client („Kontakt aus CRM hinzufügen").
 - **Screen-Pop**: öffnet den Kontakt per Klick in Lexware Office.
 - Zieht Änderungen und Löschungen in Lexware automatisch nach (Index-Refresh per
@@ -272,10 +293,19 @@ an dessen Docker-Netzwerk, statt den Port zu veröffentlichen.
 - Der Firmenname ist bewusst Teil des **Anzeigenamens**, damit er auf
   Tischtelefonen und in Verpasst-Anruf-Mails erscheint — 3CX zeigt dort nur den
   Namen, kein separates Firmenfeld.
-- Rufnummern werden auf **E.164** normalisiert; ein Fallback über die letzten
-  acht Ziffern fängt Formatabweichungen ab (nur bei eindeutigem Treffer).
-- Unsichtbare Bidi-/Zero-Width-Steuerzeichen, die Lexware teils um Nummern legt,
-  werden aus der Anzeige entfernt.
+- Für den Abgleich werden Rufnummern auf **E.164** normalisiert; ein Fallback
+  über die letzten acht Ziffern fängt Formatabweichungen ab. Teilen sich mehrere
+  Einträge diese Ziffern, greift der Fallback nur, wenn alle dieselbe
+  vollständige Nummer tragen.
+- 3CX setzt die Anrufernummer unkodiert in die Lookup-URL ein, ein führendes `+`
+  kommt daher als Leerzeichen an. Der Connector stellt es vor dem Abgleich wieder
+  her.
+- An 3CX zurückgegebene Nummern sind bereinigt und einheitlich: Inlandsnummern
+  national ohne Leerzeichen (`01515550100`, das Format der deutschen
+  Rufnummernübermittlung), Auslandsnummern als E.164 (`+41791234567`).
+  Geschützte Leerzeichen und unsichtbare Bidi-/Zero-Width-Zeichen, die Lexware
+  teils mitliefert, werden entfernt — mit ihnen übernimmt 3CX den Kontakt nicht
+  ins Telefonbuch.
 
 ## Bare-Metal (ohne Docker)
 
@@ -305,11 +335,22 @@ php lexware-3cx-adapter.php selftest
 - Immer **TLS** davorsetzen. Optional den Zugriff am Reverse Proxy auf die
   IP-Bereiche von 3CX beschränken.
 
+## Tischtelefone
+
+3CX schickt den Anrufernamen an Tischtelefone (z. B. Yealink) nur für Nummern,
+die beim Routing des Anrufs im **eigenen Telefonbuch** stehen. Das Live-Ergebnis
+aus dem CRM erscheint im Web Client, in den Apps und in Verpasst-Anruf-Mails,
+nicht aber am Tischtelefon. Damit der Name auch dort erscheint:
+
+- in der Integration die Kontaktabfrage auf **immer abfragen** stellen und
+- **„CRM-Kontakte zum Firmentelefonbuch hinzufügen"** aktivieren.
+
+Abwägung: Am Tischtelefon erscheint der Name ab dem **zweiten Anruf** einer
+Nummer, und die Telefonbucheinträge sind statische Kopien — spätere Änderungen in
+Lexware werden dort nicht nachgezogen.
+
 ## Hinweise & Grenzen
 
-- Die 3CX-Option **„CRM-Kontakte zum Firmentelefonbuch hinzufügen" auslassen** —
-  die Live-Auflösung zeigt Name und Firma ohnehin bei jedem Anruf, und die Option
-  legt statische Kopien an, die veralten.
 - Die deutsche Mobil-Slot-Heuristik (`15x/16x/17x` → mobil) und der `+49`-Default
   sind für Deutschland; für andere Regionen `COUNTRY_CODE` setzen.
 - **Nicht enthalten:** Call-Journaling — Lexware Office ist eine Buchhaltung
