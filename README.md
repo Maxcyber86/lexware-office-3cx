@@ -124,7 +124,7 @@ Set via `environment:` in `docker-compose.yml` (Docker) or in `config.php`
   leading `+` arrives as a space. The connector restores it before matching.
 - Numbers returned to 3CX are cleaned and uniform: domestic numbers in national
   format without spaces (`01515550100`, the format German trunks deliver),
-  foreign numbers in E.164 (`+41791234567`). No-break spaces and invisible
+  foreign numbers in E.164 (`+491791234567`). No-break spaces and invisible
   bidi/zero-width characters that Lexware sometimes adds are removed — with
   them, 3CX does not add the contact to its phonebook.
 
@@ -302,7 +302,7 @@ an dessen Docker-Netzwerk, statt den Port zu veröffentlichen.
   her.
 - An 3CX zurückgegebene Nummern sind bereinigt und einheitlich: Inlandsnummern
   national ohne Leerzeichen (`01515550100`, das Format der deutschen
-  Rufnummernübermittlung), Auslandsnummern als E.164 (`+41791234567`).
+  Rufnummernübermittlung), Auslandsnummern als E.164 (`+491791234567`).
   Geschützte Leerzeichen und unsichtbare Bidi-/Zero-Width-Zeichen, die Lexware
   teils mitliefert, werden entfernt — mit ihnen übernimmt 3CX den Kontakt nicht
   ins Telefonbuch.
