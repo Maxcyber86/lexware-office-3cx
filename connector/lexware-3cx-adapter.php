@@ -594,7 +594,16 @@ final class ContactLookup
     /** @return array<string,mixed>|null */
     public function byNumber(string $rawNumber): ?array
     {
-        $cc   = (string) ($this->cache['countryCode'] ?? '+49');
+        $cc = (string) ($this->cache['countryCode'] ?? '+49');
+
+        // 3CX inserts [Number] into the URL without percent-encoding, so a
+        // leading "+" arrives as a space after query-string decoding
+        // ("+4917..." -> " 4917..."). Restore it before normalizing; otherwise
+        // the country code is prefixed a second time and the exact match fails.
+        if (preg_match('/^\s+\d/', $rawNumber) === 1) {
+            $rawNumber = '+' . ltrim($rawNumber);
+        }
+
         $e164 = Phone::normalize($rawNumber, $cc);
         if ($e164 === null) {
             return null;
@@ -609,8 +618,31 @@ final class ContactLookup
         // avoid wrong name assignments.
         $last8 = Phone::last8($e164);
         $byLast8 = $this->cache['byLast8'] ?? [];
-        if ($last8 !== null && isset($byLast8[$last8]) && count($byLast8[$last8]) === 1) {
-            return $this->cache['list'][$byLast8[$last8][0]] ?? null;
+        if ($last8 === null || !isset($byLast8[$last8])) {
+            return null;
+        }
+
+        $candidates = $byLast8[$last8];
+        if (count($candidates) === 1) {
+            return $this->cache['list'][$candidates[0]] ?? null;
+        }
+
+        // Several records share these last eight digits. That is harmless when
+        // they all carry the same full number (e.g. a contact person's mobile
+        // that is also stored on the company): take the first record, which is
+        // the contact person. Different full numbers stay unresolved to avoid
+        // assigning a wrong name.
+        $numbers = [];
+        foreach ($candidates as $idx) {
+            foreach (['mobile', 'business', 'home', 'other'] as $field) {
+                $n = Phone::normalize((string) ($this->cache['list'][$idx][$field] ?? ''), $cc);
+                if ($n !== null && Phone::last8($n) === $last8) {
+                    $numbers[$n] = true;
+                }
+            }
+        }
+        if (count($numbers) === 1) {
+            return $this->cache['list'][min($candidates)] ?? null;
         }
 
         return null;
@@ -765,8 +797,53 @@ function commandRefresh(array $cfg): int
 // ===========================================================================
 
 /** @param array<string,mixed>|object $payload */
+/**
+ * Cleans a phone number for output to 3CX. Lexware sometimes returns numbers
+ * with no-break spaces (U+00A0) or invisible control characters; 3CX does not
+ * add such contacts to its phonebook and cannot match them exactly. Domestic
+ * numbers are returned in national format without spaces (the format in which
+ * German trunks deliver the caller ID), foreign numbers in E.164.
+ */
+function formatPhoneFor3cx(string $raw, string $countryCode): string
+{
+    $clean = preg_replace('/[\p{Z}\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}\x{2066}-\x{2069}\x{FEFF}]+/u', ' ', $raw);
+    $clean = trim($clean ?? $raw);
+    if ($clean === '') {
+        return '';
+    }
+    $e164 = Phone::normalize($clean, $countryCode);
+    if ($e164 === null) {
+        return $clean;
+    }
+    if (str_starts_with($e164, $countryCode)) {
+        return '0' . substr($e164, strlen($countryCode));
+    }
+    return $e164;
+}
+
+/** Formats the phone fields of all contacts in a response to 3CX. */
+function formatContactPhones(array|object $payload): array|object
+{
+    if (!is_array($payload) || !isset($payload['contacts']) || !is_array($payload['contacts'])) {
+        return $payload;
+    }
+    $cc = (string) (getenv('COUNTRY_CODE') ?: '+49');
+    foreach ($payload['contacts'] as $i => $contact) {
+        if (!is_array($contact)) {
+            continue;
+        }
+        foreach (['mobile', 'business', 'home', 'other'] as $field) {
+            if (isset($contact[$field]) && is_string($contact[$field])) {
+                $payload['contacts'][$i][$field] = formatPhoneFor3cx($contact[$field], $cc);
+            }
+        }
+    }
+    return $payload;
+}
+
 function sendJson(array|object $payload, int $status = 200): void
 {
+    $payload = formatContactPhones($payload);
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -969,6 +1046,32 @@ function commandSelftest(): int
     // Company number -> company display
     $h7 = $lookup->byNumber('06151 5550111');
     $check('lookup company number -> company', $h7 !== null && $h7['displayName'] === 'Sample Ltd');
+
+    // 3CX sends "+" unencoded -> arrives as a leading space
+    $h8 = $lookup->byNumber(' 4915155501' . '00');
+    $check('lookup with \'+\' decoded as space', $h8 !== null && $h8['displayName'] === 'Sample, Erika (Sample Ltd)');
+
+    // Same mobile on contact person and company -> still resolves to the person
+    $dup = ContactMapper::map([
+        'id'      => 'ffff',
+        'company' => ['name' => 'Dup GmbH', 'contactPersons' => [
+            ['firstName' => 'Anna', 'lastName' => 'Dup', 'phoneNumber' => '0171 2345678'],
+        ]],
+        'phoneNumbers' => ['mobile' => ['+49 171 2345678'], 'business' => ['06145 99999']],
+    ], 'x');
+    $dupLookup = new ContactLookup(IndexBuilder::build($dup, '+49'));
+    $h9 = $dupLookup->byNumber(' 491712345678');
+    $check('duplicate number + space -> contact person', $h9 !== null && $h9['displayName'] === 'Dup, Anna (Dup GmbH)');
+    $h10 = $dupLookup->byNumber('0171 2345678');
+    $check('duplicate number exact -> contact person', $h10 !== null && $h10['displayName'] === 'Dup, Anna (Dup GmbH)');
+
+    // Output format for 3CX: domestic national without spaces, foreign E.164
+    $check('3CX format: no-break spaces + controls', formatPhoneFor3cx("\u{202A}+49\u{00A0}151\u{00A0}5550100\u{202C}", '+49') === '015155501' . '00');
+    $check('3CX format: domestic landline',          formatPhoneFor3cx('06151 / 555 0111', '+49') === '061515550111');
+    $check('3CX format: foreign number',             formatPhoneFor3cx('+41 79 123 45 67', '+49') === '+41791234567');
+    $check('3CX format: empty stays empty',          formatPhoneFor3cx('', '+49') === '');
+    $fmt = formatContactPhones(['contacts' => [['mobile' => '+49 151 5550100', 'business' => '']]]);
+    $check('3CX format: applied to response',        $fmt['contacts'][0]['mobile'] === '015155501' . '00');
 
     $s2 = $lookup->search('sample');
     $check('search finds records', count($s2) >= 1);
